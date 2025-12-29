@@ -1,7 +1,7 @@
 # Parking System (Vue + Express + MySQL)
 
 ## 1. Clone project
-git clone https://github.com/xxx/vue-example.git
+git clone https://github.com/nguyendainhan/Vehicle-management.git
 
 ## 2. Cài backend
 cd Backend
