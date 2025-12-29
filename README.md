@@ -4,7 +4,9 @@
 git clone https://github.com/nguyendainhan/Vehicle-management.git
 
 ## 2. Cài backend
+
 cd Backend
+
 npm install
 
 ## 3. Import database
@@ -18,5 +20,7 @@ node server.js
 
 ## 6. Run frontend
 cd Frontend
+
 npm install
+
 npm run dev
