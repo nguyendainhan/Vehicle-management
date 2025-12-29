@@ -81,6 +81,8 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 dotenv.config();
 
+process.env.TZ = 'UTC'
+
 // ==== Setup __dirname cho ES Module ====
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -95,7 +97,8 @@ const db = await mysql.createPool({
   port: process.env.DB_PORT,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME
+  database: process.env.DB_NAME,
+  timezone: 'Z'
 });
 
 // ==== API ====

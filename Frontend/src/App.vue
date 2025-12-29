@@ -1,55 +1,58 @@
 <template>
   <div class="app">
-    <h2>🚗 停車管制小工具 (Nâng cao)</h2>
+    <h2>🚗 停車管制小工具（進階版）</h2>
 
     <div class="container">
-      <!-- Cột trái: Nhập biển số -->
+      <!-- 左欄：新增車牌 -->
       <div class="col input-col">
-        <h3>➕ Thêm biển số</h3>
+        <h3>➕ 新增車牌</h3>
         <input v-model="manualInput" placeholder="ABC-123" />
-        <button @click="addPlate">Thêm</button>
+        <button @click="addPlate">新增</button>
 
         <ul>
           <li v-for="v in vehicles" :key="v.id">
             {{ v.plate_number }}
-            <button @click="deletePlate(v.id)">❌ Xóa</button>
+            <button @click="deletePlate(v.id)">❌ 刪除</button>
           </li>
         </ul>
       </div>
 
-      <!-- Cột giữa: Camera + OCR -->
+      <!-- 中間欄：相機 + OCR -->
       <div class="col camera-col">
-        <h3>📷 Quét biển số</h3>
+        <h3>📷 掃描車牌</h3>
         <select v-model="actionType">
-          <option value="IN">Xe vào</option>
-          <option value="OUT">Xe ra</option>
+          <option value="IN">車輛進場</option>
+          <option value="OUT">車輛出場</option>
         </select>
+
         <video ref="video" autoplay playsinline></video>
-        <button @click="capture">Chụp & Quét</button>
+        <button @click="capture">拍照並辨識</button>
         <canvas ref="canvas" hidden></canvas>
 
-        <p v-if="loading">⏳ Đang nhận diện...</p>
-        <p v-if="scannedPlate">🔍 Biển số: <strong>{{ scannedPlate }}</strong></p>
-        <p v-if="result === true" class="ok">✅ Cho phép</p>
-        <p v-if="result === false" class="no">❌ Không cho phép</p>
+        <p v-if="loading">⏳ 辨識中...</p>
+        <p v-if="scannedPlate">🔍 車牌號碼：<strong>{{ scannedPlate }}</strong></p>
+        <p v-if="result === true" class="ok">✅ 允許通行</p>
+        <p v-if="result === false" class="no">❌ 禁止通行</p>
       </div>
 
-      <!-- Cột phải: Log ra/vào -->
+      <!-- 右欄：進出紀錄 -->
       <div class="col log-col">
-        <h3>📝 Lịch sử ra/vào (100 bản gần nhất)</h3>
+        <h3>📝 進出紀錄（最近 100 筆）</h3>
         <table>
           <thead>
             <tr>
-              <th>Biển số</th>
-              <th>Trạng thái</th>
-              <th>Thời gian</th>
+              <th>車牌</th>
+              <th>狀態</th>
+              <th>時間</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="log in logs" :key="log.id">
               <td>{{ log.plate_number }}</td>
-              <td :class="log.status === 'ALLOW' ? 'ok' : 'no'">{{ log.action }} - {{ log.status }}</td>
-              <td>{{ new Date(log.created_at).toLocaleString() }}</td>
+              <td :class="log.status === 'ALLOW' ? 'ok' : 'no'">
+                {{ log.action }} - {{ log.status }}
+              </td>
+              <td>{{ formatTaiwanTime(log.created_at) }}</td>
             </tr>
           </tbody>
         </table>
@@ -63,7 +66,7 @@ import { ref, onMounted, nextTick } from 'vue'
 import Tesseract from 'tesseract.js'
 import axios from 'axios'
 
-// ===== DATA =====
+// ===== 資料 =====
 const vehicles = ref([])
 const logs = ref([])
 const manualInput = ref('')
@@ -73,39 +76,61 @@ const loading = ref(false)
 const video = ref(null)
 const canvas = ref(null)
 const actionType = ref('IN')
-const API_URL = 'http://localhost:3000' // Thay đổi nếu cần
+const API_URL = 'http://localhost:3000' // 依實際情況修改
 
-// ===== FETCH VEHICLES & LOGS =====
+const formatTaiwanTime = (time) => {
+  if (!time) return ''
+  return new Date(time).toLocaleString('zh-TW', {
+    timeZone: 'Asia/Taipei',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
+}
+
+
+// ===== 取得車牌清單 =====
 const fetchVehicles = async () => {
   try {
     const res = await axios.get(`${API_URL}/api/vehicles`)
     vehicles.value = res.data
-  } catch (err) { console.error(err) }
+  } catch (err) {
+    console.error(err)
+  }
 }
 
+// ===== 取得進出紀錄 =====
 const fetchLogs = async () => {
   try {
     const res = await axios.get(`${API_URL}/api/logs`)
     logs.value = res.data
-  } catch (err) { console.error(err) }
+  } catch (err) {
+    console.error(err)
+  }
 }
 
-// ===== MOUNTED =====
+// ===== 頁面載入 =====
 onMounted(async () => {
   await nextTick()
   await fetchVehicles()
   await fetchLogs()
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    })
     if (video.value) video.value.srcObject = stream
   } catch (err) {
-    console.error('Camera error:', err)
-    alert('Không truy cập được camera. Cho phép quyền camera!')
+    console.error('相機錯誤：', err)
+    alert('無法存取相機，請允許相機權限')
   }
 })
 
-// ===== ADD PLATE =====
+// ===== 新增車牌 =====
 const addPlate = async () => {
   if (!manualInput.value.trim()) return
   try {
@@ -116,20 +141,22 @@ const addPlate = async () => {
     vehicles.value.push(res.data)
     manualInput.value = ''
   } catch (err) {
-    alert('Biển số đã tồn tại hoặc lỗi dữ liệu')
+    alert('車牌已存在或資料錯誤')
   }
 }
 
-// ===== DELETE PLATE =====
+// ===== 刪除車牌 =====
 const deletePlate = async (id) => {
-  if (!confirm('Bạn có chắc muốn xóa xe này?')) return
+  if (!confirm('確定要刪除此車牌嗎？')) return
   try {
     await axios.delete(`${API_URL}/api/vehicles/${id}`)
     vehicles.value = vehicles.value.filter(v => v.id !== id)
-  } catch (err) { console.error(err) }
+  } catch (err) {
+    console.error(err)
+  }
 }
 
-// ===== CAPTURE IMAGE =====
+// ===== 拍照 =====
 const capture = async () => {
   if (!video.value || !canvas.value) return
   loading.value = true
@@ -143,39 +170,47 @@ const capture = async () => {
   await scanPlate()
 }
 
-// ===== OCR =====
+// ===== OCR 辨識 =====
 const scanPlate = async () => {
   if (!canvas.value) return
-  const blob = await new Promise(resolve => canvas.value.toBlob(resolve, 'image/png'))
-  if (!blob) { loading.value = false; return }
+  const blob = await new Promise(resolve =>
+    canvas.value.toBlob(resolve, 'image/png')
+  )
+
+  if (!blob) {
+    loading.value = false
+    return
+  }
 
   try {
-    const { data } = await Tesseract.recognize(blob, 'eng', { logger: m => console.log(m) })
+    const { data } = await Tesseract.recognize(blob, 'eng')
     const text = data.text.toUpperCase()
     const match = text.match(/[A-Z0-9/-]{5,10}/)
-    scannedPlate.value = match ? match[0] : 'KHÔNG NHẬN DIỆN'
+    scannedPlate.value = match ? match[0] : '無法辨識'
 
     await checkPlate()
-    await fetchLogs() // Cập nhật log realtime
+    await fetchLogs()
   } catch (err) {
-    console.error('Tesseract error:', err)
-    alert('Nhận diện thất bại')
-  } finally { loading.value = false }
+    console.error('OCR 錯誤：', err)
+    alert('辨識失敗')
+  } finally {
+    loading.value = false
+  }
 }
 
-// ===== CHECK PLATE =====
+// ===== 檢查車牌 =====
 const checkPlate = async () => {
-  if (scannedPlate.value === 'KHÔNG NHẬN DIỆN') return
+  if (scannedPlate.value === '無法辨識') return
   try {
     const res = await axios.post(`${API_URL}/api/vehicles/check`, {
       plate: scannedPlate.value,
-      action: actionType.value // IN hoặc OUT
+      action: actionType.value // IN / OUT
     })
     result.value = res.data.allowed
     await fetchLogs()
   } catch (err) {
-    console.error('Check plate error:', err)
-    alert('Lỗi khi kiểm tra biển số')
+    console.error('檢查車牌錯誤：', err)
+    alert('檢查車牌時發生錯誤')
   }
 }
 </script>
