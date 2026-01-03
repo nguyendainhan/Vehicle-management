@@ -10,7 +10,7 @@ cd Backend
 npm install
 
 ## 3. Import database
-mysql -u root -p -P 3307 < database/parking_system.sql
+mysql -u root -p parking_system < parking_system.sql
 
 ## 4. Tạo file .env
 copy .env.example .env
