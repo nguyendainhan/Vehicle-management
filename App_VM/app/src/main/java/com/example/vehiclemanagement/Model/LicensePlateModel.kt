@@ -13,9 +13,24 @@ data class ScanResponse(
 )
 
 data class Vehicle(
-    @SerializedName("plate_number") val plateNumber: String
+    @SerializedName("id") val id: Int,
+    @SerializedName("plate_number") val plateNumber: String,
+    @SerializedName("owner_name") val ownerName: String?
 )
 
 data class AddVehicleRequest(
-    @SerializedName("plate_number") val plateNumber: String
+    @SerializedName("plate_number") val plateNumber: String,
+    @SerializedName("owner_name") val ownerName: String = ""
 )
+
+data class ScanHistoryItem(
+    @SerializedName("plate_number") val plate: String, // Khớp với DB MySQL
+    @SerializedName("action") val action: String,
+    @SerializedName("status") val status: String,      // "ALLOW" hoặc "DENY"
+    @SerializedName("created_at") val time: String     // MySQL trả về chuỗi thời gian
+) {
+    // Helper để check logic hiển thị màu
+    fun isAllowed(): Boolean {
+        return status == "ALLOW"
+    }
+}
